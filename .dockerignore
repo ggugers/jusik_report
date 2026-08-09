@@ -1,0 +1,6 @@
+target/
+.git/
+.gitignore
+.vscode/
+.m2repo/
+*.log

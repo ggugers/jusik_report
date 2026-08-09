@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경제분석 리포트 목록</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="shell page-grid">
+    <section class="hero-card">
+        <p class="eyebrow">NAVER ECONOMY RESEARCH</p>
+        <h1>경제분석 리포트 관리</h1>
+        <p class="hero-copy">경제분석 리포트를 제목, 증권사, 날짜, 읽음, 중요 상태로 조회하고 관리합니다.</p>
+    </section>
+
+    <section class="filter-card">
+        <form method="get" th:action="@{/economy-reports}" class="filter-form filter-form-wide">
+            <label>
+                <span>시작일</span>
+                <input type="date" name="startDate" th:value="${condition.startDate}">
+            </label>
+            <label>
+                <span>종료일</span>
+                <input type="date" name="endDate" th:value="${condition.endDate}">
+            </label>
+            <label>
+                <span>제목</span>
+                <input type="text" name="reportTitle" placeholder="예: Macro" th:value="${condition.reportTitle}">
+            </label>
+            <label>
+                <span>증권사</span>
+                <input type="text" name="securitiesFirm" placeholder="예: 키움증권" th:value="${condition.securitiesFirm}">
+            </label>
+            <label>
+                <span>읽음</span>
+                <select name="read">
+                    <option value="" th:selected="${condition.read == null}">전체</option>
+                    <option value="true" th:selected="${condition.read == true}">읽음</option>
+                    <option value="false" th:selected="${condition.read == false}">안읽음</option>
+                </select>
+            </label>
+            <label>
+                <span>중요</span>
+                <select name="important">
+                    <option value="" th:selected="${condition.important == null}">전체</option>
+                    <option value="true" th:selected="${condition.important == true}">중요</option>
+                    <option value="false" th:selected="${condition.important == false}">일반</option>
+                </select>
+            </label>
+            <div class="actions">
+                <input type="hidden" name="sort" th:value="${sort}">
+                <input type="hidden" name="direction" th:value="${direction}">
+                <button type="submit">조회</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="table-card">
+        <div class="table-head">
+            <div>
+                <p class="eyebrow">ECONOMY REPORTS</p>
+                <h2 th:text="${result.totalElements + '건'}">0건</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="responsive-report-table">
+                <thead>
+                <tr>
+                    <th>읽음</th>
+                    <th>중요</th>
+                    <th><a class="sort-link" th:href="@{/economy-reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort='reportTitle', direction=${sort == 'reportTitle' and direction == 'desc' ? 'asc' : 'desc'})}">제목</a></th>
+                    <th><a class="sort-link" th:href="@{/economy-reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort='securitiesFirm', direction=${sort == 'securitiesFirm' and direction == 'desc' ? 'asc' : 'desc'})}">증권사</a></th>
+                    <th>PDF</th>
+                    <th><a class="sort-link" th:href="@{/economy-reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort='viewCount', direction=${sort == 'viewCount' and direction == 'desc' ? 'asc' : 'desc'})}">조회수</a></th>
+                    <th><a class="sort-link" th:href="@{/economy-reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort='reportDate', direction=${sort == 'reportDate' and direction == 'desc' ? 'asc' : 'desc'})}">날짜</a></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${result.isEmpty()}">
+                    <td colspan="7" class="empty">조회 결과가 없습니다.</td>
+                </tr>
+                <tr th:each="item : ${result.content}" th:classappend="${item.read} ? 'read-row' : ''">
+                    <td class="read-cell" data-label="읽음">
+                        <label class="read-toggle">
+                            <input type="checkbox" th:checked="${item.read}" th:attr="data-economy-report-id=${item.id}" onchange="toggleEconomyRead(this)">
+                        </label>
+                    </td>
+                    <td class="read-cell" data-label="중요">
+                        <label class="important-toggle">
+                            <input type="checkbox" th:checked="${item.important}" th:attr="data-economy-report-id=${item.id}" onchange="toggleEconomyImportant(this)">
+                        </label>
+                    </td>
+                    <td data-label="제목"><a class="report-link" th:href="${item.detailUrl}" target="_blank" rel="noopener noreferrer" th:text="${item.reportTitle}">리포트 제목</a></td>
+                    <td data-label="증권사" th:text="${item.securitiesFirm}">증권사</td>
+                    <td data-label="PDF">
+                        <a class="pdf-mini-link" th:if="${item.pdfUrl != null and !item.pdfUrl.isBlank()}" th:href="${item.pdfUrl}" target="_blank" rel="noopener noreferrer" title="PDF 열기">
+                            PDF
+                        </a>
+                        <span th:if="${item.pdfUrl == null or item.pdfUrl.isBlank()}" class="pdf-empty">-</span>
+                    </td>
+                    <td data-label="조회수" th:text="${item.viewCount != null ? item.viewCount : '-'}">0</td>
+                    <td data-label="날짜" th:text="${item.reportDate}">2026-04-24</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" th:if="${result.totalPages > 1}">
+            <a th:if="${!result.first}" th:href="@{/economy-reports(page=${result.number - 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort=${sort}, direction=${direction})}">이전</a>
+            <span th:text="${result.number + 1 + ' / ' + result.totalPages}">1 / 1</span>
+            <a th:if="${!result.last}" th:href="@{/economy-reports(page=${result.number + 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, reportTitle=${condition.reportTitle}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, sort=${sort}, direction=${direction})}">다음</a>
+        </div>
+    </section>
+</main>
+
+<script>
+    async function postEconomyToggle(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed');
+        }
+    }
+
+    async function toggleEconomyRead(checkbox) {
+        const reportId = checkbox.dataset.economyReportId;
+        const read = checkbox.checked;
+        const row = checkbox.closest('tr');
+        row.classList.toggle('read-row', read);
+
+        try {
+            await postEconomyToggle(`/economy-reports/${reportId}/read`, { read });
+        } catch (error) {
+            checkbox.checked = !read;
+            row.classList.toggle('read-row', !read);
+            alert('읽음 상태 저장에 실패했습니다.');
+        }
+    }
+
+    async function toggleEconomyImportant(checkbox) {
+        const reportId = checkbox.dataset.economyReportId;
+        const important = checkbox.checked;
+
+        try {
+            await postEconomyToggle(`/economy-reports/${reportId}/important`, { important });
+        } catch (error) {
+            checkbox.checked = !important;
+            alert('중요 상태 저장에 실패했습니다.');
+        }
+    }
+</script>
+</body>
+</html>

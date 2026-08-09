@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "JusikReportApplication",
+            "request": "launch",
+            "mainClass": "com.example.jusikreport.JusikReportApplication",
+            "projectName": "jusik-report",
+            "vmArgs": "-Dfile.encoding=UTF-8 -Dconsole.encoding=UTF-8"
+        }
+    ]
+}

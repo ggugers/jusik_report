@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 주식 목록 (시가총액)</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="shell page-grid">
+    <section class="hero-card">
+        <p class="eyebrow">NAVER FINANCE MARKET CAP</p>
+        <h1>전체 주식 시가총액 정보</h1>
+        <p class="hero-copy">네이버 금융 시가총액 페이지의 모든 항목(순위, 현재가, 전일비, 등락률, 액면가, 시가총액, 상장주식수, 외국인비율, 거래량, PER, ROE)을 수집하여 표시합니다. 각 항목 헤더를 클릭하여 정렬할 수 있습니다.</p>
+    </section>
+
+    <section class="filter-card">
+        <form method="get" th:action="@{/market-caps}" class="filter-form filter-form-wide">
+            <label>
+                <span>종목명 / 코드</span>
+                <input type="text" name="stockName" placeholder="예: 삼성전자 또는 005930" th:value="${condition.stockName}">
+            </label>
+            <label>
+                <span>시장</span>
+                <select name="marketType">
+                    <option value="" th:selected="${condition.marketType == null or condition.marketType.isBlank()}">전체</option>
+                    <option value="KOSPI" th:selected="${condition.marketType == 'KOSPI'}">KOSPI</option>
+                    <option value="KOSDAQ" th:selected="${condition.marketType == 'KOSDAQ'}">KOSDAQ</option>
+                </select>
+            </label>
+            <div class="actions">
+                <input type="hidden" name="sort" th:if="${explicitSort}" th:value="${sort}">
+                <input type="hidden" name="direction" th:if="${explicitSort}" th:value="${direction}">
+                <button type="submit">조회</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="table-card">
+        <div class="table-head">
+            <div>
+                <p class="eyebrow">STOCKS</p>
+                <h2 th:text="${result.totalElements + '건'}">0건</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="responsive-report-table">
+                <thead>
+                <tr>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='rankNo', direction=${sort == 'rankNo' and direction == 'asc' ? 'desc' : 'asc'})}">
+                            N <span th:if="${sort == 'rankNo'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='stockName', direction=${sort == 'stockName' and direction == 'asc' ? 'desc' : 'asc'})}">
+                            종목명 <span th:if="${sort == 'stockName'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='currentPrice', direction=${sort == 'currentPrice' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            현재가 <span th:if="${sort == 'currentPrice'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='marketCapValue', direction=${sort == 'marketCapValue' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            시가총액 <span th:if="${sort == 'marketCapValue'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='foreignRatio', direction=${sort == 'foreignRatio' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            외국인비율 <span th:if="${sort == 'foreignRatio'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='volume', direction=${sort == 'volume' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            거래량 <span th:if="${sort == 'volume'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='per', direction=${sort == 'per' and direction == 'asc' ? 'desc' : 'asc'})}">
+                            PER <span th:if="${sort == 'per'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='roe', direction=${sort == 'roe' and direction == 'desc' ? 'asc' : 'asc'})}">
+                            ROE <span th:if="${sort == 'roe'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${result.isEmpty()}">
+                    <td colspan="8" class="empty">조회 결과가 없습니다.</td>
+                </tr>
+                <tr th:each="item : ${result.content}">
+                    <td data-label="N" th:text="${item.rankNo != null ? item.rankNo : '-'}">1</td>
+                    <td data-label="종목명">
+                        <a th:if="${item.stockCode != null and !item.stockCode.isBlank()}"
+                           class="stock-link"
+                           th:href="@{'https://finance.naver.com/item/fchart.naver?code=' + ${item.stockCode}}"
+                           target="_blank" rel="noopener noreferrer"
+                           th:text="${item.stockName}">삼성전자</a>
+                        <span th:if="${item.stockCode == null or item.stockCode.isBlank()}" th:text="${item.stockName}">삼성전자</span>
+                        <span class="market-tag"
+                              th:classappend="${item.marketType == 'KOSPI'} ? ' market-tag-kospi' : (${item.marketType == 'KOSDAQ'} ? ' market-tag-kosdaq' : ' market-tag-default')"
+                              th:text="${item.marketType != null ? item.marketType : '-'}">KOSPI</span>
+                    </td>
+                    <td data-label="현재가" th:text="${item.currentPriceText != null ? item.currentPriceText : (item.currentPrice != null ? #numbers.formatInteger(item.currentPrice, 1, 'COMMA') : '-')}">70,000</td>
+                    <td data-label="시가총액">
+                        <span class="market-cap-inline" th:text="${item.marketCapText != null ? item.marketCapText : '-'}">4,178,848</span>
+                    </td>
+                    <td data-label="외국인비율" th:text="${item.foreignRatioText != null ? item.foreignRatioText : (item.foreignRatio != null ? item.foreignRatio + '%' : '-')}">55.00</td>
+                    <td data-label="거래량" th:text="${item.volumeText != null ? item.volumeText : (item.volume != null ? #numbers.formatInteger(item.volume, 1, 'COMMA') : '-')}">12,345,678</td>
+                    <td data-label="PER" th:text="${item.perText != null ? item.perText : (item.per != null ? item.per : '-')}">15.20</td>
+                    <td data-label="ROE" th:text="${item.roeText != null ? item.roeText : (item.roe != null ? item.roe : '-')}">10.50</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" th:if="${result.totalPages > 1}">
+            <a th:if="${!result.first and explicitSort}"
+               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, sort=${sort}, direction=${direction})}">
+                이전
+            </a>
+            <a th:if="${!result.first and !explicitSort}"
+               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType})}">
+                이전
+            </a>
+            <span th:text="${result.number + 1 + ' / ' + result.totalPages}">1 / 1</span>
+            <a th:if="${!result.last and explicitSort}"
+               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, sort=${sort}, direction=${direction})}">
+                다음
+            </a>
+            <a th:if="${!result.last and !explicitSort}"
+               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType})}">
+                다음
+            </a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

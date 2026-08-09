@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 리포트 목록</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="shell page-grid">
+    <section class="hero-card">
+        <p class="eyebrow">NAVER FINANCE RESEARCH</p>
+        <h1>일자별 주식 리포트 관리</h1>
+        <p class="hero-copy">읽음과 중요 체크는 즉시 저장됩니다. 검색에서는 읽음과 중요 여부로 바로 걸러볼 수 있습니다.</p>
+    </section>
+
+    <section class="filter-card">
+        <form method="get" th:action="@{/reports}" class="filter-form filter-form-wide">
+            <label>
+                <span>시작일</span>
+                <input type="date" name="startDate" th:value="${condition.startDate}">
+            </label>
+            <label>
+                <span>종료일</span>
+                <input type="date" name="endDate" th:value="${condition.endDate}">
+            </label>
+            <label>
+                <span>종목명</span>
+                <input type="text" name="stockName" placeholder="예: 삼성전자" th:value="${condition.stockName}">
+            </label>
+            <label>
+                <span>증권사</span>
+                <input type="text" name="securitiesFirm" placeholder="예: NH투자증권" th:value="${condition.securitiesFirm}">
+            </label>
+            <label>
+                <span>읽음</span>
+                <select name="read">
+                    <option value="" th:selected="${condition.read == null}">전체</option>
+                    <option value="true" th:selected="${condition.read == true}">읽음</option>
+                    <option value="false" th:selected="${condition.read == false}">안읽음</option>
+                </select>
+            </label>
+            <label>
+                <span>중요</span>
+                <select name="important">
+                    <option value="" th:selected="${condition.important == null}">전체</option>
+                    <option value="true" th:selected="${condition.important == true}">중요</option>
+                    <option value="false" th:selected="${condition.important == false}">일반</option>
+                </select>
+            </label>
+            <label>
+                <span>목표가</span>
+                <select name="targetPriceChange">
+                    <option value="" th:selected="${condition.targetPriceChange == null}">전체</option>
+                    <option th:each="change : ${targetPriceChanges}"
+                            th:value="${change.name()}"
+                            th:text="${change.label}"
+                            th:selected="${condition.targetPriceChange == change}">상향</option>
+                </select>
+            </label>
+            <div class="actions">
+                <input type="hidden" name="sort" th:if="${explicitSort}" th:value="${sort}">
+                <input type="hidden" name="direction" th:if="${explicitSort}" th:value="${direction}">
+                <button type="submit">조회</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="table-card">
+        <div class="table-head">
+            <div>
+                <p class="eyebrow">REPORTS</p>
+                <h2 th:text="${result.totalElements + '건'}">0건</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="responsive-report-table">
+                <thead>
+                <tr>
+                    <th>읽음</th>
+                    <th>중요</th>
+                    <th>목표가</th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='stockName', direction=${sort == 'stockName' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            종목명
+                        </a>
+                    </th>
+                    <th>시장</th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='marketCapRank', direction=${sort == 'marketCapRank' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            순위
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='marketCapValue', direction=${sort == 'marketCapValue' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            시가총액
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='reportTitle', direction=${sort == 'reportTitle' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            제목
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='securitiesFirm', direction=${sort == 'securitiesFirm' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            증권사
+                        </a>
+                    </th>
+                    <th>PDF</th>
+                    <th>
+                        <a class="sort-link" th:href="@{/reports(page=0, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort='reportDate', direction=${sort == 'reportDate' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            날짜
+                        </a>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${result.isEmpty()}">
+                    <td colspan="11" class="empty">조회 결과가 없습니다.</td>
+                </tr>
+                <tr th:each="item : ${result.content}" th:classappend="${item.read} ? 'read-row' : ''">
+                    <td class="read-cell" data-label="읽음">
+                        <label class="read-toggle">
+                            <input type="checkbox"
+                                   th:checked="${item.read}"
+                                   th:attr="data-report-id=${item.id}"
+                                   onchange="toggleRead(this)">
+                        </label>
+                    </td>
+                    <td class="read-cell" data-label="중요">
+                        <label class="important-toggle">
+                            <input type="checkbox"
+                                   th:checked="${item.important}"
+                                   th:attr="data-report-id=${item.id}"
+                                   onchange="toggleImportant(this)">
+                        </label>
+                    </td>
+                    <td class="target-change-cell" data-label="목표가">
+                        <select class="target-change-select"
+                                th:attr="data-report-id=${item.id}"
+                                onchange="updateTargetPriceChange(this)">
+                            <option value="" th:selected="${item.targetPriceChange == null}">-</option>
+                            <option th:each="change : ${targetPriceChanges}"
+                                    th:value="${change.name()}"
+                                    th:text="${change.label}"
+                                    th:selected="${item.targetPriceChange == change}">상향</option>
+                        </select>
+                    </td>
+                    <td data-label="종목명">
+                        <a class="stock-link" th:href="${item.stockDetailUrl}" target="_blank" rel="noopener noreferrer"
+                           th:text="${item.stockName}">삼성전자</a>
+                    </td>
+                    <td data-label="시장">
+                        <span class="market-tag"
+                              th:classappend="${item.marketType == 'KOSPI'} ? ' market-tag-kospi' : (${item.marketType == 'KOSDAQ'} ? ' market-tag-kosdaq' : ' market-tag-default')"
+                              th:text="${item.marketType != null ? item.marketType : '-'}">KOSPI</span>
+                    </td>
+                    <td data-label="순위" th:text="${item.marketCapRank != null ? item.marketCapRank : '-'}">1</td>
+                    <td data-label="시가총액">
+                        <span class="market-cap-inline" th:text="${item.marketCapText != null ? item.marketCapText : '-'}">12,832,582</span>
+                    </td>
+                    <td data-label="제목">
+                        <a class="report-link" th:href="${item.detailUrl}" target="_blank" rel="noopener noreferrer"
+                           th:text="${item.reportTitle}">리포트 제목</a>
+                    </td>
+                    <td data-label="증권사" th:text="${item.securitiesFirm}">증권사</td>
+                    <td data-label="PDF">
+                        <a class="pdf-mini-link" th:if="${item.pdfUrl != null and !item.pdfUrl.isBlank()}" th:href="${item.pdfUrl}" target="_blank" rel="noopener noreferrer" title="PDF 열기">
+                            PDF
+                        </a>
+                        <span th:if="${item.pdfUrl == null or item.pdfUrl.isBlank()}" class="pdf-empty">-</span>
+                    </td>
+                    <td data-label="날짜" th:text="${item.reportDate}">2026-04-24</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" th:if="${result.totalPages > 1}">
+            <a th:if="${!result.first and explicitSort}"
+               th:href="@{/reports(page=${result.number - 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort=${sort}, direction=${direction})}">
+                이전
+            </a>
+            <a th:if="${!result.first and !explicitSort}"
+               th:href="@{/reports(page=${result.number - 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange})}">
+                이전
+            </a>
+            <span th:text="${result.number + 1 + ' / ' + result.totalPages}">1 / 1</span>
+            <a th:if="${!result.last and explicitSort}"
+               th:href="@{/reports(page=${result.number + 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange}, sort=${sort}, direction=${direction})}">
+                다음
+            </a>
+            <a th:if="${!result.last and !explicitSort}"
+               th:href="@{/reports(page=${result.number + 1}, startDate=${condition.startDate}, endDate=${condition.endDate}, stockName=${condition.stockName}, securitiesFirm=${condition.securitiesFirm}, read=${condition.read}, important=${condition.important}, targetPriceChange=${condition.targetPriceChange})}">
+                다음
+            </a>
+        </div>
+    </section>
+</main>
+
+<script>
+    async function postToggle(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed');
+        }
+    }
+
+    async function toggleRead(checkbox) {
+        const reportId = checkbox.dataset.reportId;
+        const read = checkbox.checked;
+        const row = checkbox.closest('tr');
+
+        row.classList.toggle('read-row', read);
+
+        try {
+            await postToggle(`/reports/${reportId}/read`, { read });
+        } catch (error) {
+            checkbox.checked = !read;
+            row.classList.toggle('read-row', !read);
+            alert('읽음 상태 저장에 실패했습니다.');
+        }
+    }
+
+    async function toggleImportant(checkbox) {
+        const reportId = checkbox.dataset.reportId;
+        const important = checkbox.checked;
+
+        try {
+            await postToggle(`/reports/${reportId}/important`, { important });
+        } catch (error) {
+            checkbox.checked = !important;
+            alert('중요 상태 저장에 실패했습니다.');
+        }
+    }
+
+    async function updateTargetPriceChange(select) {
+        const reportId = select.dataset.reportId;
+        const targetPriceChange = select.value;
+        const previousValue = select.dataset.previousValue || '';
+
+        try {
+            await postToggle(`/reports/${reportId}/target-price-change`, { targetPriceChange });
+            select.dataset.previousValue = targetPriceChange;
+        } catch (error) {
+            select.value = previousValue;
+            select.dataset.previousValue = previousValue;
+            alert('목표가 상태 저장에 실패했습니다.');
+        }
+    }
+
+    document.querySelectorAll('.target-change-select').forEach((select) => {
+        select.dataset.previousValue = select.value;
+    });
+</script>
+</body>
+</html>

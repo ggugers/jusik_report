@@ -1,0 +1,14 @@
+services:
+  jusik-report:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jusik-report-app
+    ports:
+      - "8080:8080"
+    volumes:
+      # SQLite 데이터베이스 유지를 위해 호스트의 ./data 디렉토리를 바인드 마운트
+      - ./data:/app/data
+    environment:
+      - APP_DB_PATH=/app/data/jusik-report.db
+    restart: unless-stopped
