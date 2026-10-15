@@ -71,7 +71,11 @@ public class MarketCapSyncServiceImpl implements MarketCapSyncService {
                                 item.per(),
                                 item.perText(),
                                 item.roe(),
-                                item.roeText()
+                                item.roeText(),
+                                item.pbr(),
+                                item.pbrText(),
+                                item.operatingProfitGrowthRate(),
+                                item.operatingProfitGrowthRateText()
                         ));
                         accumulator.savedCount++;
                         continue;
@@ -101,7 +105,11 @@ public class MarketCapSyncServiceImpl implements MarketCapSyncService {
                             item.per(),
                             item.perText(),
                             item.roe(),
-                            item.roeText()
+                            item.roeText(),
+                            item.pbr(),
+                            item.pbrText(),
+                            item.operatingProfitGrowthRate(),
+                            item.operatingProfitGrowthRateText()
                     );
                     accumulator.updatedCount++;
                 } catch (Exception exception) {

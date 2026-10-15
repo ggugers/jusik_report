@@ -98,6 +98,18 @@ public class MarketCap {
     @Column(name = "roe_text", length = 50)
     private String roeText;
 
+    @Column(name = "pbr")
+    private Double pbr;
+
+    @Column(name = "pbr_text", length = 50)
+    private String pbrText;
+
+    @Column(name = "operating_profit_growth_rate")
+    private Double operatingProfitGrowthRate;
+
+    @Column(name = "operating_profit_growth_rate_text", length = 50)
+    private String operatingProfitGrowthRateText;
+
     @Column(name = "collected_at", nullable = false)
     private LocalDateTime collectedAt;
 
@@ -147,7 +159,11 @@ public class MarketCap {
             Double per,
             String perText,
             Double roe,
-            String roeText
+            String roeText,
+            Double pbr,
+            String pbrText,
+            Double operatingProfitGrowthRate,
+            String operatingProfitGrowthRateText
     ) {
         this.stockCode = stockCode;
         this.stockName = stockName;
@@ -173,6 +189,10 @@ public class MarketCap {
         this.perText = perText;
         this.roe = roe;
         this.roeText = roeText;
+        this.pbr = pbr;
+        this.pbrText = pbrText;
+        this.operatingProfitGrowthRate = operatingProfitGrowthRate;
+        this.operatingProfitGrowthRateText = operatingProfitGrowthRateText;
     }
 
     public void update(String stockCode, String stockName, String marketType, String marketCapText, Long marketCapValue, Integer rankNo) {
@@ -209,7 +229,11 @@ public class MarketCap {
             Double per,
             String perText,
             Double roe,
-            String roeText
+            String roeText,
+            Double pbr,
+            String pbrText,
+            Double operatingProfitGrowthRate,
+            String operatingProfitGrowthRateText
     ) {
         this.stockCode = stockCode;
         this.stockName = stockName;
@@ -235,6 +259,10 @@ public class MarketCap {
         this.perText = perText;
         this.roe = roe;
         this.roeText = roeText;
+        this.pbr = pbr;
+        this.pbrText = pbrText;
+        this.operatingProfitGrowthRate = operatingProfitGrowthRate;
+        this.operatingProfitGrowthRateText = operatingProfitGrowthRateText;
         this.collectedAt = LocalDateTime.now();
     }
 
@@ -348,6 +376,22 @@ public class MarketCap {
 
     public String getRoeText() {
         return roeText;
+    }
+
+    public Double getPbr() {
+        return pbr;
+    }
+
+    public String getPbrText() {
+        return pbrText;
+    }
+
+    public Double getOperatingProfitGrowthRate() {
+        return operatingProfitGrowthRate;
+    }
+
+    public String getOperatingProfitGrowthRateText() {
+        return operatingProfitGrowthRateText;
     }
 
     public LocalDateTime getCollectedAt() {

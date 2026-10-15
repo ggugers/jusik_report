@@ -13,7 +13,7 @@
     <section class="hero-card">
         <p class="eyebrow">NAVER FINANCE MARKET CAP</p>
         <h1>전체 주식 시가총액 정보</h1>
-        <p class="hero-copy">네이버 금융 시가총액 페이지의 모든 항목(순위, 현재가, 전일비, 등락률, 액면가, 시가총액, 상장주식수, 외국인비율, 거래량, PER, ROE)을 수집하여 표시합니다. 각 항목 헤더를 클릭하여 정렬할 수 있습니다.</p>
+        <p class="hero-copy">네이버 금융 시가총액 페이지의 모든 항목(순위, 현재가, 전일비, 등락률, 액면가, 시가총액, 상장주식수, 외국인비율, 거래량, PER, ROE, PBR, 영업이익증가율)을 수집하여 표시합니다. 각 항목 헤더를 클릭하여 정렬할 수 있습니다.</p>
     </section>
 
     <section class="filter-card">
@@ -29,6 +29,14 @@
                     <option value="KOSPI" th:selected="${condition.marketType == 'KOSPI'}">KOSPI</option>
                     <option value="KOSDAQ" th:selected="${condition.marketType == 'KOSDAQ'}">KOSDAQ</option>
                 </select>
+            </label>
+            <label>
+                <span>최소 시가총액 (억원)</span>
+                <input type="number" name="minMarketCap" placeholder="예: 1000" th:value="${condition.minMarketCap}">
+            </label>
+            <label>
+                <span>최대 시가총액 (억원)</span>
+                <input type="number" name="maxMarketCap" placeholder="예: 50000" th:value="${condition.maxMarketCap}">
             </label>
             <div class="actions">
                 <input type="hidden" name="sort" th:if="${explicitSort}" th:value="${sort}">
@@ -51,50 +59,60 @@
                 <thead>
                 <tr>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='rankNo', direction=${sort == 'rankNo' and direction == 'asc' ? 'desc' : 'asc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='rankNo', direction=${sort == 'rankNo' and direction == 'asc' ? 'desc' : 'asc'})}">
                             N <span th:if="${sort == 'rankNo'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='stockName', direction=${sort == 'stockName' and direction == 'asc' ? 'desc' : 'asc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='stockName', direction=${sort == 'stockName' and direction == 'asc' ? 'desc' : 'asc'})}">
                             종목명 <span th:if="${sort == 'stockName'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='currentPrice', direction=${sort == 'currentPrice' and direction == 'desc' ? 'asc' : 'desc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='currentPrice', direction=${sort == 'currentPrice' and direction == 'desc' ? 'asc' : 'desc'})}">
                             현재가 <span th:if="${sort == 'currentPrice'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='marketCapValue', direction=${sort == 'marketCapValue' and direction == 'desc' ? 'asc' : 'desc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='marketCapValue', direction=${sort == 'marketCapValue' and direction == 'desc' ? 'asc' : 'desc'})}">
                             시가총액 <span th:if="${sort == 'marketCapValue'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='foreignRatio', direction=${sort == 'foreignRatio' and direction == 'desc' ? 'asc' : 'desc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='foreignRatio', direction=${sort == 'foreignRatio' and direction == 'desc' ? 'asc' : 'desc'})}">
                             외국인비율 <span th:if="${sort == 'foreignRatio'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='volume', direction=${sort == 'volume' and direction == 'desc' ? 'asc' : 'desc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='volume', direction=${sort == 'volume' and direction == 'desc' ? 'asc' : 'desc'})}">
                             거래량 <span th:if="${sort == 'volume'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='per', direction=${sort == 'per' and direction == 'asc' ? 'desc' : 'asc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='per', direction=${sort == 'per' and direction == 'asc' ? 'desc' : 'asc'})}">
                             PER <span th:if="${sort == 'per'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                     <th>
-                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, sort='roe', direction=${sort == 'roe' and direction == 'desc' ? 'asc' : 'asc'})}">
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='roe', direction=${sort == 'roe' and direction == 'desc' ? 'asc' : 'asc'})}">
                             ROE <span th:if="${sort == 'roe'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='pbr', direction=${sort == 'pbr' and direction == 'asc' ? 'desc' : 'asc'})}">
+                            PBR <span th:if="${sort == 'pbr'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" th:href="@{/market-caps(page=0, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort='operatingProfitGrowthRate', direction=${sort == 'operatingProfitGrowthRate' and direction == 'desc' ? 'asc' : 'desc'})}">
+                            영업이익증가율 <span th:if="${sort == 'operatingProfitGrowthRate'}" th:text="${direction == 'asc' ? '▲' : '▼'}"></span>
                         </a>
                     </th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:if="${result.isEmpty()}">
-                    <td colspan="8" class="empty">조회 결과가 없습니다.</td>
+                    <td colspan="10" class="empty">조회 결과가 없습니다.</td>
                 </tr>
                 <tr th:each="item : ${result.content}">
                     <td data-label="N" th:text="${item.rankNo != null ? item.rankNo : '-'}">1</td>
@@ -117,6 +135,8 @@
                     <td data-label="거래량" th:text="${item.volumeText != null ? item.volumeText : (item.volume != null ? #numbers.formatInteger(item.volume, 1, 'COMMA') : '-')}">12,345,678</td>
                     <td data-label="PER" th:text="${item.perText != null ? item.perText : (item.per != null ? item.per : '-')}">15.20</td>
                     <td data-label="ROE" th:text="${item.roeText != null ? item.roeText : (item.roe != null ? item.roe : '-')}">10.50</td>
+                    <td data-label="PBR" th:text="${item.pbrText != null ? item.pbrText : (item.pbr != null ? item.pbr : '-')}">1.20</td>
+                    <td data-label="영업이익증가율" th:text="${item.operatingProfitGrowthRateText != null ? item.operatingProfitGrowthRateText : (item.operatingProfitGrowthRate != null ? item.operatingProfitGrowthRate + '%' : '-')}">15.30</td>
                 </tr>
                 </tbody>
             </table>
@@ -124,20 +144,20 @@
 
         <div class="pagination" th:if="${result.totalPages > 1}">
             <a th:if="${!result.first and explicitSort}"
-               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, sort=${sort}, direction=${direction})}">
+               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort=${sort}, direction=${direction})}">
                 이전
             </a>
             <a th:if="${!result.first and !explicitSort}"
-               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType})}">
+               th:href="@{/market-caps(page=${result.number - 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap})}">
                 이전
             </a>
             <span th:text="${result.number + 1 + ' / ' + result.totalPages}">1 / 1</span>
             <a th:if="${!result.last and explicitSort}"
-               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, sort=${sort}, direction=${direction})}">
+               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap}, sort=${sort}, direction=${direction})}">
                 다음
             </a>
             <a th:if="${!result.last and !explicitSort}"
-               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType})}">
+               th:href="@{/market-caps(page=${result.number + 1}, stockName=${condition.stockName}, marketType=${condition.marketType}, minMarketCap=${condition.minMarketCap}, maxMarketCap=${condition.maxMarketCap})}">
                 다음
             </a>
         </div>

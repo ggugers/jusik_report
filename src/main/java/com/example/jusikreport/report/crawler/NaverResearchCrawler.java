@@ -1,117 +1,243 @@
 package com.example.jusikreport.report.crawler;
 
+import com.example.jusikreport.report.crawler.dto.NaverCompanyResearchDetail;
+import com.example.jusikreport.report.crawler.dto.NaverCompanyResearchItem;
+import com.example.jusikreport.report.crawler.dto.NaverCompanyResearchResponse;
 import com.example.jusikreport.report.dto.CrawledReport;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
+import java.net.URI;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
 public class NaverResearchCrawler {
 
     private static final Logger log = LoggerFactory.getLogger(NaverResearchCrawler.class);
 
-    private static final String BASE_URL = "https://finance.naver.com";
-    private static final String LIST_URL = BASE_URL + "/research/company_list.naver";
+    private static final String BASE_URL = "https://stock.naver.com";
+    private static final String LIST_API_URL = BASE_URL + "/api/stockSecurity/researches/v2/company";
+    private static final String DETAIL_API_URL_TEMPLATE = BASE_URL + "/api/stockSecurity/researches/v2/company/{nid}";
+    private static final String DETAIL_WEB_URL_TEMPLATE = BASE_URL + "/research/company/{nid}";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    private static final int DEFAULT_PAGE_SIZE = 50;
+
     private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,         // yyyy-MM-dd
+            DateTimeFormatter.ofPattern("yyyy.MM.dd"),
             DateTimeFormatter.ofPattern("yy.MM.dd"),
-            DateTimeFormatter.ofPattern("yyyy.MM.dd")
+            DateTimeFormatter.ofPattern("yyyyMMdd")
     );
 
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+    private final ExecutorService executorService;
+
+    public NaverResearchCrawler() {
+        this(null, null);
+    }
+
+    public NaverResearchCrawler(RestClient.Builder restClientBuilder, ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper()
+                .findAndRegisterModules()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(15));
+
+        RestClient.Builder builder = restClientBuilder != null ? restClientBuilder : RestClient.builder();
+        this.restClient = builder
+                .requestFactory(requestFactory)
+                .defaultHeader(HttpHeaders.USER_AGENT, USER_AGENT)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    /**
+     * 일자별 리포트 목록을 페이지 번호(1-based)로 조회합니다.
+     */
+    public List<CrawledReport> crawlPage(LocalDate targetDate, int page) {
+        return crawlPage(targetDate, targetDate, null, page, DEFAULT_PAGE_SIZE);
+    }
+
+    /**
+     * 특정 종목의 일자별 리포트 목록을 페이지 번호(1-based)로 조회합니다.
+     */
+    public List<CrawledReport> crawlPageByItemCode(String itemCode, LocalDate targetDate, int page) {
+        return crawlPage(targetDate, targetDate, itemCode, page, DEFAULT_PAGE_SIZE);
+    }
+
+    /**
+     * 기존 호환: 날짜 제한 없이 페이지 번호(1-based)로 조회합니다.
+     */
     public List<CrawledReport> crawlPage(int page) {
-        String url = UriComponentsBuilder.fromUriString(LIST_URL)
-                .queryParam("page", page)
-                .toUriString();
-        log.info("Crawl Naver company research URL: {}", url);
-
-        try {
-            Document document = Jsoup.connect(url)
-                    .userAgent(USER_AGENT)
-                    .timeout(10000)
-                    .get();
-
-            return parse(document);
-        } catch (IOException exception) {
-            throw new IllegalStateException("네이버 리포트 페이지 조회에 실패했습니다. page=" + page, exception);
-        }
+        return crawlPage(null, null, null, page, DEFAULT_PAGE_SIZE);
     }
 
+    /**
+     * 기존 호환: 특정 종목의 리포트 목록을 날짜 제한 없이 페이지 번호(1-based)로 조회합니다.
+     */
     public List<CrawledReport> crawlPageByItemCode(String itemCode, int page) {
-        String url = UriComponentsBuilder.fromUriString(LIST_URL)
-                .queryParam("searchType", "itemCode")
-                .queryParam("itemCode", itemCode)
-                .queryParam("page", page)
-                .toUriString();
-        log.info("Crawl Naver company research URL: {}", url);
+        return crawlPage(null, null, itemCode, page, DEFAULT_PAGE_SIZE);
+    }
+
+    /**
+     * 사용자가 제공한 웹 URL (예: https://stock.naver.com/research/company?startDate=20261015&endDate=20261015)
+     * 기반으로 파라미터를 추출하여 페이지 번호(1-based)로 조회합니다.
+     */
+    public List<CrawledReport> crawlByWebUrl(String webUrl, int page) {
+        UriComponentsBuilder ucb = UriComponentsBuilder.fromUriString(webUrl);
+        var params = ucb.build().getQueryParams();
+
+        LocalDate startDate = parseDateParam(params.getFirst("startDate"));
+        LocalDate endDate = parseDateParam(params.getFirst("endDate"));
+        String itemCode = params.getFirst("itemCode");
+        if (itemCode == null || itemCode.isBlank()) {
+            itemCode = params.getFirst("itemCodes");
+        }
+
+        return crawlPage(startDate, endDate, itemCode, page, DEFAULT_PAGE_SIZE);
+    }
+
+    /**
+     * 네이버 증권 신규 REST API를 호출하여 리포트 목록과 각 리포트의 상세 PDF 첨부 URL을 수집합니다.
+     *
+     * @param startDate 시작일 (포함, null 허용)
+     * @param endDate   종료일 (포함, null 허용)
+     * @param itemCode  종목코드 (null 허용)
+     * @param page      페이지 번호 (1-based, 내부적으로 0-based index 변환)
+     * @param size      페이지 크기
+     * @return 수집된 리포트 리스트
+     */
+    public List<CrawledReport> crawlPage(LocalDate startDate, LocalDate endDate, String itemCode, int page, int size) {
+        int index = Math.max(0, page - 1);
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(LIST_API_URL)
+                .queryParam("index", index)
+                .queryParam("size", size);
+
+        if (startDate != null) {
+            uriBuilder.queryParam("startDate", startDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        }
+        if (endDate != null) {
+            uriBuilder.queryParam("endDate", endDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        }
+        if (itemCode != null && !itemCode.isBlank()) {
+            uriBuilder.queryParam("itemCodes", itemCode.trim());
+        }
+
+        URI requestUri = uriBuilder.build().encode().toUri();
+        log.info("Crawl Naver company research API: {}", requestUri);
 
         try {
-            Document document = Jsoup.connect(url)
-                    .userAgent(USER_AGENT)
-                    .timeout(10000)
-                    .get();
+            String responseBody = restClient.get()
+                    .uri(requestUri)
+                    .retrieve()
+                    .body(String.class);
 
-            return parse(document);
-        } catch (IOException exception) {
-            throw new IllegalStateException("?ㅼ씠踰?醫낅ぉ 由ы룷???섏씠吏 議고쉶???ㅽ뙣?덉뒿?덂. itemCode=" + itemCode + ", page=" + page, exception);
+            if (responseBody == null || responseBody.isBlank()) {
+                log.warn("Empty response received from Naver research API: {}", requestUri);
+                return List.of();
+            }
+
+            NaverCompanyResearchResponse response = objectMapper.readValue(responseBody, NaverCompanyResearchResponse.class);
+            List<NaverCompanyResearchItem> items = response.safeItems();
+
+            if (items.isEmpty()) {
+                log.info("No research items returned from API for page={}, index={}", page, index);
+                return List.of();
+            }
+
+            // 가상 스레드를 활용해 각 리포트의 상세 정보(attachUrl/PDF 링크)를 병렬로 안전하게 조회
+            List<CompletableFuture<CrawledReport>> futures = items.stream()
+                    .map(item -> CompletableFuture.supplyAsync(() -> toCrawledReport(item), executorService))
+                    .toList();
+
+            List<CrawledReport> results = new ArrayList<>();
+            for (CompletableFuture<CrawledReport> future : futures) {
+                try {
+                    results.add(future.join());
+                } catch (Exception e) {
+                    log.error("Failed to map research report item", e);
+                }
+            }
+
+            return results;
+        } catch (Exception exception) {
+            throw new IllegalStateException("네이버 리포트 API 조회에 실패했습니다. uri=" + requestUri, exception);
         }
     }
 
-    private List<CrawledReport> parse(Document document) {
-        List<CrawledReport> items = new ArrayList<>();
-        Elements rows = document.select("table.type_1 tr");
-
-        for (Element row : rows) {
-            Elements tds = row.select("> td");
-            if (tds.size() < 6) {
-                continue;
-            }
-
-            Element stockLink = tds.get(0).selectFirst("a.stock_item");
-            Element titleLink = tds.get(1).selectFirst("a[href*=company_read.naver]");
-            Element pdfLink = tds.get(3).selectFirst("a[href]");
-
-            if (stockLink == null || titleLink == null) {
-                continue;
-            }
-
-            String stockUrl = stockLink.absUrl("href");
-            String stockCode = extractQueryParam(stockUrl, "code");
-            String stockName = stockLink.text().trim();
-            String reportTitle = titleLink.text().trim();
-            String securitiesFirm = tds.get(2).text().trim();
-            String pdfUrl = pdfLink == null ? "" : pdfLink.absUrl("href");
-            String detailUrl = titleLink.absUrl("href");
-            LocalDate reportDate = parseDate(tds.get(4).text());
-            Integer viewCount = parseInteger(tds.get(5).text());
-
-            items.add(new CrawledReport(
-                    stockCode,
-                    stockName,
-                    reportTitle,
-                    securitiesFirm,
-                    pdfUrl,
-                    detailUrl,
-                    reportDate,
-                    viewCount
-            ));
+    /**
+     * 리포트 상세 API를 호출하여 PDF 파일 첨부 링크(attachUrl)를 가져옵니다.
+     */
+    public String fetchAttachUrl(String nid) {
+        if (nid == null || nid.isBlank()) {
+            return "";
         }
+        URI detailUri = UriComponentsBuilder.fromUriString(DETAIL_API_URL_TEMPLATE)
+                .buildAndExpand(nid.trim())
+                .encode()
+                .toUri();
 
-        return items;
+        try {
+            String responseBody = restClient.get()
+                    .uri(detailUri)
+                    .retrieve()
+                    .body(String.class);
+
+            if (responseBody != null && !responseBody.isBlank()) {
+                NaverCompanyResearchDetail detail = objectMapper.readValue(responseBody, NaverCompanyResearchDetail.class);
+                return detail.attachUrl() != null ? detail.attachUrl() : "";
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch research detail attachUrl for nid: {}. Error: {}", nid, e.getMessage());
+        }
+        return "";
+    }
+
+    private CrawledReport toCrawledReport(NaverCompanyResearchItem item) {
+        String nid = item.nid() != null ? item.nid().trim() : "";
+        String detailUrl = nid.isEmpty() ? "" : DETAIL_WEB_URL_TEMPLATE.replace("{nid}", nid);
+        String pdfUrl = nid.isEmpty() ? "" : fetchAttachUrl(nid);
+
+        LocalDate reportDate = parseDate(item.writeDate());
+        Integer viewCount = parseInteger(item.readCount());
+
+        return new CrawledReport(
+                item.itemCode() != null ? item.itemCode().trim() : "",
+                item.itemName() != null ? item.itemName().trim() : "",
+                item.title() != null ? item.title().trim() : "",
+                item.brokerName() != null ? item.brokerName().trim() : "",
+                pdfUrl,
+                detailUrl,
+                reportDate,
+                viewCount
+        );
     }
 
     private LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) {
+            return LocalDate.now();
+        }
         String normalized = value.trim();
         for (DateTimeFormatter formatter : DATE_FORMATTERS) {
             try {
@@ -122,12 +248,25 @@ public class NaverResearchCrawler {
         throw new IllegalArgumentException("리포트 날짜 파싱 실패: " + value);
     }
 
-    private Integer parseInteger(String value) {
-        String digits = value.replace(",", "").trim();
-        return digits.isEmpty() ? null : Integer.parseInt(digits);
+    private LocalDate parseDateParam(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String clean = value.replaceAll("[^0-9-]", "").trim();
+        for (DateTimeFormatter formatter : DATE_FORMATTERS) {
+            try {
+                return LocalDate.parse(clean, formatter);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        return null;
     }
 
-    private String extractQueryParam(String url, String name) {
-        return UriComponentsBuilder.fromUriString(url).build().getQueryParams().getFirst(name);
+    private Integer parseInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String digits = value.replace(",", "").trim();
+        return digits.isEmpty() ? null : Integer.parseInt(digits);
     }
 }

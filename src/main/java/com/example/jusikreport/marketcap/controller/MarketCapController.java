@@ -33,6 +33,8 @@ public class MarketCapController {
             "volume",
             "per",
             "roe",
+            "pbr",
+            "operatingProfitGrowthRate",
             "updatedAt"
     );
 
@@ -46,6 +48,8 @@ public class MarketCapController {
     public String list(
             @RequestParam(required = false) String stockName,
             @RequestParam(required = false) String marketType,
+            @RequestParam(required = false) Long minMarketCap,
+            @RequestParam(required = false) Long maxMarketCap,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "rankNo") String sort,
             @RequestParam(defaultValue = "asc") String direction,
@@ -57,7 +61,7 @@ public class MarketCapController {
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(page, 100, Sort.by(sortDirection, sortField));
-        MarketCapSearchCondition condition = new MarketCapSearchCondition(stockName, marketType);
+        MarketCapSearchCondition condition = new MarketCapSearchCondition(stockName, marketType, minMarketCap, maxMarketCap);
         Page<MarketCap> result = marketCapQueryService.search(condition, pageable);
 
         model.addAttribute("result", result);

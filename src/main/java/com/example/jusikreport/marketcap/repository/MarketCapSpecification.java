@@ -36,6 +36,14 @@ public class MarketCapSpecification {
                 if (condition.marketType() != null && !condition.marketType().isBlank()) {
                     predicates.add(cb.equal(root.get("marketType"), condition.marketType().trim()));
                 }
+
+                if (condition.minMarketCap() != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("marketCapValue"), condition.minMarketCap()));
+                }
+
+                if (condition.maxMarketCap() != null) {
+                    predicates.add(cb.lessThanOrEqualTo(root.get("marketCapValue"), condition.maxMarketCap()));
+                }
             }
 
             if (sortField != null && !sortField.isBlank() && sortDirection != null) {

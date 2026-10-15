@@ -15,7 +15,7 @@ import java.util.List;
 @Component
 public class NaverMarketCapCrawler {
 
-    private static final String LIST_URL = "https://finance.naver.com/sise/sise_market_sum.naver";
+    private static final String SUBMIT_URL = "https://finance.naver.com/sise/field_submit.naver";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
     private final MarketCapValueParser marketCapValueParser;
@@ -26,17 +26,24 @@ public class NaverMarketCapCrawler {
 
     public List<CrawledMarketCap> crawlPage(int page, Integer sosok, String marketType) {
         try {
-            var connection = Jsoup.connect(LIST_URL)
-                    .data("page", String.valueOf(page));
+            String returnUrl = "http://finance.naver.com/sise/sise_market_sum.naver?page=" + page
+                    + (sosok != null ? "&sosok=" + sosok : "");
 
-            if (sosok != null) {
-                connection.data("sosok", String.valueOf(sosok));
-            }
-
-            Document document = connection
+            Document document = Jsoup.connect(SUBMIT_URL)
+                    .data("menu", "market_sum")
+                    .data("returnUrl", returnUrl)
+                    .data("fieldIds", "quant")
+                    .data("fieldIds", "listed_stock_cnt")
+                    .data("fieldIds", "market_sum")
+                    .data("fieldIds", "frgn_rate")
+                    .data("fieldIds", "per")
+                    .data("fieldIds", "roe")
+                    .data("fieldIds", "pbr")
+                    .data("fieldIds", "operating_profit_increasing_rate")
                     .userAgent(USER_AGENT)
-            .timeout(10000)
-                    .get();
+                    .timeout(10000)
+                    .execute()
+                    .parse();
 
             return parse(document, marketType);
         } catch (IOException exception) {
@@ -50,7 +57,7 @@ public class NaverMarketCapCrawler {
 
         for (Element row : rows) {
             Elements tds = row.select("> td");
-            if (tds.size() < 12 || !tds.get(0).hasClass("no")) {
+            if (tds.size() < 14 || !tds.get(0).hasClass("no")) {
                 continue;
             }
 
@@ -94,23 +101,29 @@ public class NaverMarketCapCrawler {
             String faceValueText = tds.get(5).text().trim();
             Long faceValue = parseNullableLong(faceValueText);
 
-            String marketCapText = tds.get(6).text().trim();
-            Long marketCapValue = marketCapValueParser.parse(marketCapText);
+            String volumeText = tds.get(6).text().trim();
+            Long volume = parseNullableLong(volumeText);
 
             String listedSharesText = tds.get(7).text().trim();
             Long listedShares = parseNullableLong(listedSharesText);
 
-            String foreignRatioText = tds.get(8).text().trim();
+            String marketCapText = tds.get(8).text().trim();
+            Long marketCapValue = marketCapValueParser.parse(marketCapText);
+
+            String operatingProfitGrowthRateText = tds.get(9).text().trim();
+            Double operatingProfitGrowthRate = parseNullableDouble(operatingProfitGrowthRateText);
+
+            String foreignRatioText = tds.get(10).text().trim();
             Double foreignRatio = parseNullableDouble(foreignRatioText);
 
-            String volumeText = tds.get(9).text().trim();
-            Long volume = parseNullableLong(volumeText);
-
-            String perText = tds.get(10).text().trim();
+            String perText = tds.get(11).text().trim();
             Double per = parseNullableDouble(perText);
 
-            String roeText = tds.get(11).text().trim();
+            String roeText = tds.get(12).text().trim();
             Double roe = parseNullableDouble(roeText);
+
+            String pbrText = tds.get(13).text().trim();
+            Double pbr = parseNullableDouble(pbrText);
 
             items.add(new CrawledMarketCap(
                     stockCode,
@@ -136,7 +149,11 @@ public class NaverMarketCapCrawler {
                     per,
                     perText,
                     roe,
-                    roeText
+                    roeText,
+                    pbr,
+                    pbrText,
+                    operatingProfitGrowthRate,
+                    operatingProfitGrowthRateText
             ));
         }
 

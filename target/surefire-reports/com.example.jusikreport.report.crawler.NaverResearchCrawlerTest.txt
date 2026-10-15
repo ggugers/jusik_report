@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.jusikreport.report.crawler.NaverResearchCrawlerTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.391 s -- in com.example.jusikreport.report.crawler.NaverResearchCrawlerTest

@@ -71,8 +71,8 @@ public class ReportCrawlServiceImpl implements ReportCrawlService {
 
         for (int page = 1; page <= MAX_PAGES; page++) {
             List<CrawledReport> crawledReports = itemCode == null
-                    ? naverResearchCrawler.crawlPage(page)
-                    : naverResearchCrawler.crawlPageByItemCode(itemCode, page);
+                    ? naverResearchCrawler.crawlPage(targetDate, page)
+                    : naverResearchCrawler.crawlPageByItemCode(itemCode, targetDate, page);
             if (crawledReports.isEmpty()) {
                 break;
             }

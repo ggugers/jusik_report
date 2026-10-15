@@ -24,6 +24,10 @@ public record CrawledMarketCap(
         Double per,
         String perText,
         Double roe,
-        String roeText
+        String roeText,
+        Double pbr,
+        String pbrText,
+        Double operatingProfitGrowthRate,
+        String operatingProfitGrowthRateText
 ) {
 }

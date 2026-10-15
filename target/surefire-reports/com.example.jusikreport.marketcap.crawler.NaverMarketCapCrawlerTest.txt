@@ -1,4 +1,13 @@
 -------------------------------------------------------------------------------
 Test set: com.example.jusikreport.marketcap.crawler.NaverMarketCapCrawlerTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.098 s -- in com.example.jusikreport.marketcap.crawler.NaverMarketCapCrawlerTest
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.987 s <<< FAILURE! -- in com.example.jusikreport.marketcap.crawler.NaverMarketCapCrawlerTest
+com.example.jusikreport.marketcap.crawler.NaverMarketCapCrawlerTest.testParseHtml -- Time elapsed: 0.980 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting actual not to be empty
+	at com.example.jusikreport.marketcap.crawler.NaverMarketCapCrawlerTest.testParseHtml(NaverMarketCapCrawlerTest.java:20)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
