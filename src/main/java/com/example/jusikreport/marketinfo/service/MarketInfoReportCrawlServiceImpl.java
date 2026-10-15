@@ -33,7 +33,7 @@ public class MarketInfoReportCrawlServiceImpl implements MarketInfoReportCrawlSe
         int visitedPages = 0;
 
         for (int page = 1; page <= MAX_PAGES; page++) {
-            List<CrawledMarketInfoReport> crawled = crawler.crawlPage(page);
+            List<CrawledMarketInfoReport> crawled = crawler.crawlPage(targetDate, page);
             if (crawled.isEmpty()) {
                 break;
             }

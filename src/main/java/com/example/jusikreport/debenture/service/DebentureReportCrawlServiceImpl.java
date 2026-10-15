@@ -33,7 +33,7 @@ public class DebentureReportCrawlServiceImpl implements DebentureReportCrawlServ
         int visitedPages = 0;
 
         for (int page = 1; page <= MAX_PAGES; page++) {
-            List<CrawledDebentureReport> crawled = crawler.crawlPage(page);
+            List<CrawledDebentureReport> crawled = crawler.crawlPage(targetDate, page);
             if (crawled.isEmpty()) {
                 break;
             }
