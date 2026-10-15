@@ -33,7 +33,7 @@ public class IndustryReportCrawlServiceImpl implements IndustryReportCrawlServic
         int visitedPages = 0;
 
         for (int page = 1; page <= MAX_PAGES; page++) {
-            List<CrawledIndustryReport> crawled = crawler.crawlPage(page);
+            List<CrawledIndustryReport> crawled = crawler.crawlPage(targetDate, page);
             if (crawled.isEmpty()) {
                 break;
             }

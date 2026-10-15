@@ -33,7 +33,7 @@ public class InvestReportCrawlServiceImpl implements InvestReportCrawlService {
         int visitedPages = 0;
 
         for (int page = 1; page <= MAX_PAGES; page++) {
-            List<CrawledInvestReport> crawled = crawler.crawlPage(page);
+            List<CrawledInvestReport> crawled = crawler.crawlPage(targetDate, page);
             if (crawled.isEmpty()) {
                 break;
             }

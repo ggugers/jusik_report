@@ -1,5 +1,0 @@
-com\example\jusikreport\marketcap\repository\MarketCapRepositoryTest.class
-com\example\jusikreport\kospi\controller\KospiIndexControllerTest.class
-com\example\jusikreport\marketcap\crawler\NaverMarketCapCrawlerTest.class
-com\example\jusikreport\kospi\service\KospiIndexLogServiceTest.class
-com\example\jusikreport\marketcap\controller\MarketCapControllerTest.class
